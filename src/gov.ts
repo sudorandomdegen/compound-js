@@ -92,3 +92,82 @@ export async function castVoteBySig(
 
   return eth.trx(governorAddress, method, parameters, trxOptions);
 }
+
+// /**
+//  * Description.
+//  *
+//  * @param {String} var Description
+//  *
+//  * @returns {object} Returns an Ethers.js transaction object of the vote
+//  *     transaction.
+//  */
+// export async function createVoteSignature(proposalId: number) {
+//   await netId(this);
+
+//   const errorPrefix = 'Compound [createVoteSignature] | ';
+
+//   if (typeof proposalId !== 'number') {
+//     throw Error(errorPrefix + 'Argument `proposalId` must be an integer.');
+//   }
+
+//   const _address = this._provider.address;
+//   const chainId = this._network.id;
+//   const governorAddress = address[this._network.name].GovernorAlpha;
+
+//   const msgParamsFor = createVoteBySigMessage(governorAddress, proposalId, true, chainId);
+//   const msgParamsAgainst = createVoteBySigMessage(governorAddress, proposalId, false, chainId);
+
+//   // const sigFor = await web3SignTypedData(provider, _address, msgParamsFor);
+//   // const sigAgainst = await web3SignTypedData(provider, _address, msgParamsAgainst);
+
+//   let sigFor, sigAgainst;
+//   try {
+//     window;
+//     // const provider = web3.currentProvider;
+//     sigFor = await web3SignTypedData(provider, _address, msgParamsFor);
+//     sigAgainst = await web3SignTypedData(provider, _address, msgParamsAgainst);
+//   } catch(e) {
+//     // do node js version here
+//   }
+
+//   return { for: sigFor, against: sigAgainst };
+// }
+
+function createVoteBySigMessage (govAddress: string, proposalId: number, support: boolean, chainId: number = 1) {
+  const types = {
+    EIP712Domain: [
+      { name: 'name', type: 'string' },
+      { name: 'chainId', type: 'uint256' },
+      { name: 'verifyingContract', type: 'address' },
+    ],
+    Ballot: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'bool' }
+    ]
+  };
+
+  const primaryType = 'Ballot';
+  const domain = { name: 'Compound Governor Alpha', chainId, verifyingContract: govAddress };
+  support = !!support;
+  const message = { proposalId, support };
+
+  return JSON.stringify({ types, primaryType, domain, message });
+};
+
+function web3SignTypedData (provider: any, fromAddress: string, messageParams: string) {
+  return new Promise((resolve, reject) => {
+    provider.sendAsync({
+      method: 'eth_signTypedData_v4',
+      params: [ fromAddress, messageParams ],
+      from: fromAddress
+    }, async (err, result) => {
+      if (err) {
+        reject(err);
+      } else if (result.error) {
+        reject(result.error.message);
+      } else {
+        resolve(result.result);
+      }
+    });
+  });
+};
